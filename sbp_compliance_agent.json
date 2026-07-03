@@ -1,0 +1,446 @@
+{
+  "name": "SBP",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "45e2cb67-65e8-4e9f-bd0a-1aa43d9e35ac",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "url": "https://www.sbp.org.pk/bprd/2026/index.htm",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "750b4828-7e56-4146-8ba5-e5977436d3fd",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "circular_links",
+              "cssSelector": ".wrapping-class a, a[href*=\"circulars\"], table a",
+              "returnValue": "attribute",
+              "attribute": "href",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "5148754b-dc21-49fe-a31e-af883e5dd0ca",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "jsCode": "const links = $input.item.json.circular_links;\nreturn links.map(link => ({ json: { link: link } }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "16c2558d-f328-46fe-8303-295d2939ce79",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9c4a0b05-caf8-47a7-b078-84eccbd3956a",
+              "leftValue": "={{ $json.link }}",
+              "rightValue": "circulars",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        832,
+        144
+      ],
+      "id": "1f716263-f198-4db9-9581-4a77b4c2b06e",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1f792e7e-23bc-40bd-8867-a2910f71ca6e",
+              "name": "full_url",
+              "value": "=https://www.sbp.org.pk/bprd/2026/{{ $json.link }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1040,
+        0
+      ],
+      "id": "14cf7eae-3af7-4b56-9cf8-2be9932dbbd2",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.full_url }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1248,
+        0
+      ],
+      "id": "b6ea1aaf-86c0-4028-8a7c-1c0ba9681e3b",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6e93b615-fef5-429b-b5ab-7c6e894267b9",
+              "leftValue": "={{ $json.full_url }}",
+              "rightValue": ".pdf",
+              "operator": {
+                "type": "string",
+                "operation": "endsWith"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1456,
+        0
+      ],
+      "id": "f2204f8e-e3e5-4ee8-86a0-d0d5af9cfe0b",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "page_text",
+              "cssSelector": "body"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        1712,
+        144
+      ],
+      "id": "5440ab8a-4742-4823-82d3-06782a25af0c",
+      "name": "HTML1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are the Autonomous Regulatory Compliance Agent for our FinTech platform. Your task is to analyze the following extracted text from a new State Bank of Pakistan (SBP) circular webpage and evaluate its impact on our technical systems and product lines.\n\n### INPUT DATA\n{{ $json.page_text }}\n\n### ANALYSIS DIRECTIONS\n1. Scrape past the navigation menus and find the actual core circular content/directive text.\n2. Determine if this policy changes, restricts, or updates rules related to:\n   * Digital Wallets / EMIs (Electronic Money Institutions)\n   * AML/KYC (Anti-Money Laundering / Know Your Customer)\n   * Transaction/Remittance limits\n   * Cybersecurity / Open Banking APIs\n3. Classify the Criticality Level as either CRITICAL, MEDIUM, or LOW. If it is an administrative notice or update unrelated to engineering software changes, mark it as LOW.\n\n### OUTPUT FORMAT\nProvide your response as a clean, beautifully formatted Markdown summary with these exact headings:\n# 🚨 SBP Regulation Update: [Extract Short Title Here]\n**Criticality Level:** [CRITICAL / MEDIUM / LOW]\n\n### 📝 TL;DR Executive Summary\n[Provide a clear, 2-3 sentence summary of the change for an executive Slack channel.]\n\n### 💻 Product & Engineering Impact\n* **Affected Product Line:** [e.g., Digital Wallets / Compliance Service / None]\n* **Technical Action Required:** [Describe exactly what engineers need to change in code, configs, or verification limits. If no action is needed, write \"None\".]",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1920,
+        144
+      ],
+      "id": "bcceb9c6-b317-412d-a544-56f6bc25737c",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1792,
+        352
+      ],
+      "id": "c613cd0e-c8ac-4e8e-9aaa-1cd57485413d",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "vNWIMltO546UVrFD",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ea9bdfea-c28a-4abb-af39-4d8519d86887",
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "CRITICAL",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        2288,
+        224
+      ],
+      "id": "bbbfc08e-4b13-4044-9e96-ed8afb7ab901",
+      "name": "Filter1"
+    },
+    {
+      "parameters": {
+        "owner": {
+          "__rl": true,
+          "value": "Adeena-Riaz-Khan",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "https://github.com/Adeena-Riaz-Khan/SBP-ComplianceAgent",
+          "mode": "url"
+        },
+        "title": "🚨 SBP Compliance Alert: Action Required",
+        "body": "🚨 SBP Regulation Update: New Policies for Teenager Accounts, Customer Onboarding, and Zakat Deduction\\n**Criticality Level:** CRITICAL\\n\\n### 📝 TL;DR Executive Summary\\nThe State Bank of Pakistan has issued critical circulars requiring updates to our platform. Key changes include the introduction of regulations for 'Teenager Accounts/Wallets', a new 'Consolidated Customer Onboarding Framework', and revised procedures for 'Zakat deduction at source' from specific bank accounts. These directives necessitate significant technical and product adjustments across our platform.\\n\\n### 💻 Product & Engineering Impact\\n*   **Affected Product Line:** Digital Wallets, Customer Onboarding/KYC, Core Banking/Account Management, Compliance Service.\\n*   **Technical Action Required:**\\n    *   **Digital Wallets/Account Management:**\\n        *   Develop or modify existing systems to support 'Teenager Accounts/Wallets', incorporating specific age-verification logic, parental/guardian consent mechanisms, and potentially tailored features or restricted functionalities as defined by the circular (BPRD Circular No. 01 of 2026).\\n        *   Implement new transaction limits, balance caps, and permissible service access appropriate for minor accounts.\\n    *   **AML/KYC:**\\n        *   Review and overhaul the entire customer onboarding journey to comply with the \"Consolidated Customer Onboarding Framework\" (BPRD Circular Letter No. 09 of 2026). This will likely involve updates to identity verification APIs, data collection forms, backend screening processes, and potentially new documentation requirements.\\n        *   Ensure all existing customer data and future onboarding flows adhere to the revised framework, potentially requiring retrospective data updates or enhanced due diligence for certain customer segments.\\n    *   **Core Banking/Financial Operations:**\\n        *   Implement or update logic within the financial transaction processing system to accurately calculate, deduct, and ensure immediate deposit of Zakat at source for savings, profit & loss sharing, and similar bank accounts (Asset Code No.101) as per BPRD Circular Letter No. 03 of 2026.\\n        *   Modify ledger management, reporting, and reconciliation processes to reflect Zakat deductions transparently and in an auditable manner.\\n    *   **Compliance & Reporting:**\\n        *   Ensure all changes related to new account types, onboarding, and Zakat deductions are fully auditable and align with SBP's regulatory reporting standards.\\n        *   Monitor for any subsequent detailed circulars that may provide granular technical specifications for these frameworks.\t\n# 🚨 SBP Regulation Update: Consolidated Customer Onboarding Framework & New Account Directives\\n\\n**Criticality Level:** CRITICAL\\n\\n### 📝 TL;DR Executive Summary\\nThe State Bank of Pakistan has issued new circulars introducing a Consolidated Customer Onboarding Framework, which will significantly impact our AML/KYC processes. Concurrently, new directives for 'Teenager Accounts/Wallets' and updated Zakat deduction rules for certain savings accounts require substantial adjustments to our product offerings and financial transaction systems.\\n\\n### 💻 Product & Engineering Impact\\n\\n*   **Affected Product Line:** Digital Wallets, Core Banking/Account Management, Compliance Service, Payment Processing.\\n\\n*   **Technical Action Required:**\\n\\n    *   **For \"CONSOLIDATED CUSTOMER ONBOARDING FRAMEWORK\" (BPRD Circular Letter No. 09 of 2026, March 24 2026):**\\n        *   **AML/KYC System Rework:** Conduct a thorough review and necessary refactoring of all customer onboarding workflows, including identity verification, due diligence (CDD), and document collection. This will likely involve updates to APIs, backend data structures for customer profiles, and integration with third-party verification services.\\n        *   **Compliance Engine Updates:** Adjust automated compliance checks and risk scoring mechanisms to align with the new framework's requirements.\\n        *   **Re-KYC Assessment:** Evaluate if any segments of existing customers require re-KYC based on the stricter or revised consolidated framework.\\n        *   **Audit & Reporting:** Update audit trails and regulatory reporting capabilities to ensure full adherence to the new onboarding standards.\\n\\n    *   **For \"TEENAGER ACCOUNT / WALLET\" (BPRD Circular No. 01 of 2026, April 01 2026):**\\n        *   **New Product Development:** Design and implement new account types or digital wallet functionalities specifically tailored for teenagers.\\n        *   **Minor-Specific KYC Flows:** Develop and integrate specialized KYC processes for minors, which must incorporate parental or guardian consent mechanisms, verification of guardianship, and potentially guardian-linked accounts.\\n        *   **Limit Management:** Define and enforce specific transaction, balance, and spending limits applicable to teenager accounts, with configurable parameters.\\n        *   **User Interface/Experience:** Update front-end applications to support teenager account creation, management, and transactions, including features for parental oversight if required.\\n\\n    *   **For \"DEDUCTION OF ZAKAT AT SOURCE...\" (BPRD Circular Letter No. 03 of 2026, February 17 2026):**\\n        *   **Financial Logic Adjustment:** If our platform offers \"Saving Banks / Profit & Loss Sharing and Similar Bank Accounts (ASSET CODE NO.101)\", the core financial calculation engine must be updated to correctly implement Zakat deduction at source.\\n        *   **Automated Zakat Transfer:** Develop or enhance systems to ensure the immediate and accurate transfer of deducted Zakat to the designated authorities after the deduction date.\\n        *   **Reporting & Reconciliation:** Update internal ledger systems and financial reporting to meticulously track and reconcile Zakat deductions and transfers.\\n\\n    *   **General Technical Impact:** Update internal compliance documentation, conduct developer training sessions on new requirements, and thoroughly test all affected systems before deployment.\t\n# 🚨 SBP Regulation Update: New Regulations on Digital Wallets, Customer Onboarding, and Zakat Deduction\\n**Criticality Level:** CRITICAL\\n\\n### 📝 TL;DR Executive Summary\\nThe State Bank of Pakistan (SBP) has released new circulars mandating a \"Consolidated Customer Onboarding Framework,\" introducing specific guidelines for \"Teenager Account / Wallet\" products, and detailing requirements for \"Deduction of Zakat at Source.\" These updates directly impact our KYC/AML processes, digital wallet product offerings, and transaction processing, necessitating immediate technical review and implementation to ensure compliance and avoid operational disruption.\\n\\n### 💻 Product & Engineering Impact\\n*   **Affected Product Line:** Digital Wallets, Customer Onboarding (KYC/AML), Core Banking/Accounting (if offering Zakat-deductible savings/profit-sharing accounts).\\n*   **Technical Action Required:**\\n    *   **Digital Wallets / EMIs (specifically for \"Teenager Account / Wallet\" - BPRD Circular No. 01 of 2026):**\\n        *   **Product Definition:** Implement new product features and user flows tailored for teenage users.\\n        *   **Onboarding:** Develop specific KYC/AML procedures for minors, potentially including parental/guardian consent mechanisms and age verification.\\n        *   **Limits Management:** Configure and enforce potentially different transaction, balance, and daily limits for these accounts/wallets.\\n        *   **UI/UX:** Adapt user interfaces to cater to this demographic while adhering to regulatory disclosure requirements.\\n    *   **AML/KYC (specifically for \"CONSOLIDATED CUSTOMER ONBOARDING FRAMEWORK\" - BPRD Circular Letter No. 09 of 2026):**\\n        *   **Onboarding Workflow Rearchitecture:** Review and potentially redesign the entire customer onboarding process to align with the new consolidated framework. This may involve changes to data capture fields, identity verification methods (e.g., biometric, document verification), and source of funds/wealth checks.\\n        *   **Data Storage & Privacy:** Ensure all collected customer data is stored and managed in compliance with the new framework's requirements.\\n        *   **Backend Integrations:** Update or build new integrations with relevant national databases or mandated third-party verification services.\\n        *   **Audit Trails & Reporting:** Enhance audit logging for all onboarding steps and adapt compliance reporting to match the new framework's criteria.\\n    *   **Transaction/Remittance Logic (specifically for \"DEDUCTION OF ZAKAT AT SOURCE...\" - BPRD Circular Letter No. 03 of 2026):**\\n        *   **Conditional Logic:** If the platform offers \"Saving Banks / Profit & Loss Sharing and Similar Bank Accounts\" (Asset Code No.101), implement automated Zakat calculation and deduction logic at the source.\\n        *   **Transaction Processing:** Ensure immediate deposit of the deducted Zakat amounts to the designated authority or account post-deduction.\\n        *   **Accounting & Reconciliation:** Update internal accounting systems to accurately record Zakat deductions and transfers, ensuring reconciliation capabilities.\\n        *   **User Notifications:** Implement clear communication to affected users regarding Zakat deductions.\\n    *   **General:** A comprehensive gap analysis should be initiated upon receipt of the full circular texts to identify all necessary technical and procedural adjustments across all relevant systems.\t\n# 🚨 SBP Regulation Update: CONSOLIDATED CUSTOMER ONBOARDING FRAMEWORK\\n**Criticality Level:** CRITICAL\\n\\n### 📝 TL;DR Executive Summary\\nThe State Bank of Pakistan has issued a new \"Consolidated Customer Onboarding Framework\" circular, which mandates significant changes to AML/KYC processes and customer acquisition. Separately, new regulations for \"Teenager Accounts/Wallets\" have been introduced. These updates will require immediate and substantial technical and product adjustments to ensure compliance, particularly for our onboarding workflows and any services catering to minors.\\n\\n### 💻 Product & Engineering Impact\\n*   **Affected Product Line:** Compliance Service, Digital Wallets, Customer Onboarding Flows, AML/KYC systems, Potentially all product lines requiring customer identification.\\n*   **Technical Action Required:**\\n    *   **Compliance & Platform Teams:**\\n        *   **Immediate Review:** Thoroughly review the full text of \"BPRD Circular Letter No. 09 of 2026\" (Consolidated Customer Onboarding Framework) to understand specific requirements for identity verification, due diligence, enhanced background checks, and record-keeping.\\n        *   **KYC/AML Workflow Overhaul:** Update existing Know Your Customer (KYC) and Anti-Money Laundering (AML) processes, including data collection fields, identity verification logic, and risk assessment models, to align with the new consolidated framework.\\n        *   **API Integrations:** Assess and modify integrations with third-party identity verification, biometric authentication, and data providers to ensure compatibility with the updated framework.\\n        *   **Data Management:** Implement changes to customer data storage, retention, and access policies as mandated by the new regulations.\\n        *   **Audit Trails:** Enhance audit trail capabilities for onboarding and due diligence steps to provide irrefutable proof of compliance.\\n    *   **Digital Wallets & Product Teams (especially for Teenager Accounts):**\\n        *   **Specific Regulation Review:** Review the full text of \"BPRD Circular No. 01 of 2026\" (Teenager Account / Wallet) to understand specific requirements related to age verification, parental/guardian consent mechanisms, legal guardianship documentation, and any stipulated transaction limits or feature restrictions for minors.\\n        *   **Product Modifications:** If the platform offers or plans to offer services to users under 18, modify digital wallet/account creation flows to incorporate new age-specific KYC, consent, and verification procedures.\\n        *   **Limit Enforcement:** Implement and enforce any new transaction, balance, or remittance limits specific to teenager accounts/wallets.\\n    *   **General Engineering & Product:**\\n        *   **Stakeholder Alignment:** Schedule a joint session with legal, compliance, product, and engineering teams to interpret circulars, define scope, and develop an implementation roadmap.\\n        *   **Resource Allocation:** Allocate dedicated engineering resources for prompt system updates, rigorous testing, and phased deployment of changes.\\n        *   **Training:** Prepare internal documentation and training for customer support and operational teams on new onboarding procedures and compliance requirements.\t\n# 🚨 SBP Regulation Update: Teenager Accounts & Consolidated Customer Onboarding Framework\\n**Criticality Level:** CRITICAL\\n\\n### 📝 TL;DR Executive Summary\\nThe SBP has issued two critical circulars: one introducing or updating guidelines for \"Teenager Accounts/Wallets\" and another on a \"Consolidated Customer Onboarding Framework.\" These directives will require significant updates to our digital wallet services to accommodate new account types for minors and a comprehensive overhaul of our AML/KYC processes for customer acquisition.\\n\\n### 💻 Product & Engineering Impact\\n*   **Affected Product Line:** Digital Wallets, Customer Onboarding & KYC, Core Compliance Service\\n*   **Technical Action Required:**\\n    *   **For \"TEENAGER ACCOUNT / WALLET\" (BPRD Circular No. 01 of 2026):**\\n        *   **Product Development:** Design and implement new account/wallet types specifically for teenagers, considering age-appropriate features, access controls, and parental/guardian linkages.\\n        *   **User Management System:** Update user schema and backend logic to support a new \"teenager\" user profile, including associated metadata (e.g., guardian ID, age verification status).\\n        *   **KYC/Onboarding Workflow:** Develop new or adapt existing KYC procedures for minors, potentially involving guardian consent forms, age verification mechanisms, and specific document requirements.\\n        *   **Transaction Limits & Controls:** Implement and enforce specific transaction limits, spending categories, or parental approval mechanisms for teenager accounts/wallets as per the circular's guidelines.\\n        *   **API & Frontend Changes:** Update APIs and user interfaces to reflect the new account type, onboarding flow, and associated features/restrictions.\\n        *   **Compliance Logging:** Ensure all new processes are auditable and log compliant data.\\n    *   **For \"CONSOLIDATED CUSTOMER ONBOARDING FRAMEWORK\" (BPRD Circular Letter No. 09 of 2026):**\\n        *   **KYC & AML Systems:** Conduct a comprehensive review and redesign of existing customer onboarding workflows, data collection points, and verification steps to align with the new consolidated framework.\\n        *   **Identity Verification Integrations:** Potentially update or integrate new third-party identity verification services to meet enhanced framework requirements.\\n        *   **Risk Scoring Models:** Adjust or retrain AML risk scoring and customer due diligence (CDD) models based on the new framework's guidelines for initial customer assessment.\\n        *   **Database & Data Retention:** Ensure customer data storage and retention policies comply with the new framework, particularly regarding the types of information collected during onboarding.\\n        *   **Audit Trails & Reporting:** Enhance audit logging for onboarding activities and update internal/regulatory reporting mechanisms to reflect adherence to the new framework.\\n        *   **Process Automation:** Explore opportunities to automate elements of the new onboarding framework to improve efficiency while maintaining compliance.\t\n# 🚨 SBP Regulation Update: Consolidated Customer Onboarding Framework & Teenager Account Wallets\\n\\n**Criticality Level:** CRITICAL\\n\\n### 📝 TL;DR Executive Summary\\nThe State Bank of Pakistan has issued new directives concerning a \"Consolidated Customer Onboarding Framework,\" which will necessitate a comprehensive review and potential overhaul of our existing AML/KYC processes. Concurrently, the introduction of \"Teenager Account / Wallet\" regulations mandates the development of specific product features and compliance measures for minor users, requiring significant technical and product adjustments across our platform. Furthermore, updates to Zakat deduction procedures require attention if applicable to our product offerings.\\n\\n### 💻 Product & Engineering Impact\\n*   **Affected Product Line:** Core Platform, Digital Wallets, Customer Onboarding, AML/KYC Services, Financial Inclusion Products.\\n*   **Technical Action Required:**\\n    1.  **AML/KYC System Rework (Consolidated Onboarding Framework):**\\n        *   Engineers must immediately review the new \"Consolidated Customer Onboarding Framework\" to identify changes in data collection, identity verification methods (e.g., enhanced biometric requirements, digital document validation), and enhanced due diligence (EDD) triggers.\\n        *   Existing customer onboarding flows (web and mobile) will require significant modifications to align with the new regulatory steps and data requirements.\\n        *   Backend systems for customer data storage, risk assessment, and ongoing monitoring will need updates to reflect the revised framework and ensure compliance with new record-keeping and privacy standards.\\n    2.  **Teenager Account/Wallet Implementation:**\\n        *   Develop and integrate a specific onboarding pathway for minors (teenagers), which includes robust age verification mechanisms at signup.\\n        *   Implement workflows for mandatory parental/guardian consent, potentially involving digital consent forms, linked accounts, or specific APIs for parental authorization.\\n        *   Design and implement configurable transaction limits, daily/monthly balance caps, and spending controls specifically for teenager accounts, accessible by both the minor and their guardian.\\n        *   Develop features for parental oversight and management of the teenager's account, potentially via a linked guardian account dashboard.\\n    3.  **Zakat Deduction Mechanism (Conditional Impact):**\\n        *   **If the platform offers saving, profit & loss sharing, or similar bank accounts:** Implement an automated system for Zakat calculation and deduction at source on specified dates. This requires precise financial logic, integration with the account ledger, and a secure mechanism for depositing collected Zakat funds to designated authorities, along with relevant reporting capabilities.\\n    4.  **API & UI/UX Updates:**\\n        *   Assess and modify any internal or external APIs related to customer onboarding, identity verification, payment processing, and account management to support the new framework and teenager account features.\\n        *   Update user interfaces across all platform applications (web, mobile) to reflect revised onboarding flows, consent mechanisms, terms & conditions, and specific account features for minors.\\n    5.  **Compliance & Audit Trail Enhancements:**\\n        *   Ensure all new onboarding steps, consent records, policy acknowledgements, and Zakat deductions (if applicable) are securely logged, time-stamped, and easily auditable to demonstrate regulatory compliance.\\n        *   Adjust existing regulatory reporting modules to capture and submit any newly required data points or reporting frequencies related to customer onboarding, teenager accounts, and Zakat deductions to the SBP.\t\n# 🚨 SBP Regulation Update: Consolidated Customer Onboarding Framework\\n**Criticality Level:** CRITICAL\\n\\n### 📝 TL;DR Executive Summary\\nThe State Bank of Pakistan has issued a new \"Consolidated Customer Onboarding Framework\" which will significantly impact our AML/KYC processes across all customer types. Additionally, a circular regarding \"Teenager Accounts/Wallets\" mandates the development of new product features and specific compliance checks for minor users. These changes require immediate attention to re-engineer core compliance infrastructure and introduce new product capabilities, alongside potential updates for Zakat deductions.\\n\\n### 💻 Product & Engineering Impact\\n*   **Affected Product Line:** Compliance Service, Digital Wallets, User Onboarding, Account Management.\\n*   **Technical Action Required:**\\n    *   **AML/KYC Systems (CRITICAL):**\\n        *   **Customer Onboarding:** A comprehensive review and potential re-engineering of the entire customer onboarding workflow is required to align with the new \"Consolidated Customer Onboarding Framework\". This includes updating identity verification mechanisms, document collection (e.g., proof of age, guardian consent documents), data validation rules, and integration points with national identity verification systems (e.g., NADRA) if stipulated by the framework.\\n        *   **KYC Procedures:** Update existing KYC processes to incorporate enhanced due diligence requirements introduced by the consolidated framework.\\n    *   **Digital Wallets / EMI Products (CRITICAL):**\\n        *   **Teenager Account/Wallet Development:** Implement a new \"Teenager Account/Wallet\" product line. This necessitates developing age-specific user registration and onboarding flows, establishing robust parental/guardian consent and linkage mechanisms, defining tailored KYC procedures for minors and their guardians, setting appropriate transaction limits, and potentially restricting certain features within the wallet interface to comply with the new circular.\\n        *   **Transaction Limits:** Review and adjust existing transaction and remittance limits across various product lines, especially for the new teenager accounts, as the consolidated framework or specific circulars may introduce new thresholds.\\n    *   **Financial Operations & Account Management (MEDIUM):**\\n        *   **Zakat Deduction:** If the platform offers saving or profit & loss sharing accounts, implement technical changes to enable the automated \"Deduction of Zakat at Source\" as per SBP's directive, including integration with Zakat collection systems and appropriate reporting.\\n    *   **Cybersecurity / Open Banking APIs:** While not explicitly detailed in the circular titles, any new onboarding framework typically requires a re-evaluation of data security protocols during the collection and transmission of sensitive customer information. Potential adjustments to API integrations for identity verification or data sharing might be necessary to ensure compliance with data protection standards implied by the new framework.\t\n# 🚨 SBP Regulatory Updates: Consolidated Onboarding, Teenager Wallets, and Zakat Deduction\\n**Criticality Level:** CRITICAL\\n\\n### 📝 TL;DR Executive Summary\\nThe State Bank of Pakistan (SBP) has issued new circulars introducing a \"Teenager Account / Wallet\" framework, a \"Consolidated Customer Onboarding Framework\", and updated directives for \"Deduction of Zakat at Source.\" These policies will significantly impact our platform's KYC/AML procedures, potentially enable new product offerings for minors, and require adjustments to our core accounting for Zakat deductions on relevant accounts.\\n\\n### 💻 Product & Engineering Impact\\n*   **Affected Product Line:** Digital Wallets, Customer Onboarding/KYC, Core Banking/Accounting, Compliance Service, Financial Inclusion products.\\n*   **Technical Action Required:**\\n    *   **For \"TEENAGER ACCOUNT / WALLET\" (BPRD Circular No. 01 of 2026):**\\n        *   **Product Development:** Design and implement new digital wallet or account features specifically tailored for teenage users, including user interface and experience considerations.\\n        *   **KYC/AML for Minors:** Develop and integrate revised Know Your Customer (KYC) and Customer Due Diligence (CDD) processes to accommodate minors, which will likely involve advanced age verification, parental/guardian consent mechanisms (e.g., digital signatures, linked accounts), and specific identity document requirements.\\n        *   **Transaction Controls:** Implement and enforce potentially unique transaction limits, monitoring rules, and parental control features for teenager accounts/wallets.\\n    *   **For \"CONSOLIDATED CUSTOMER ONBOARDING FRAMEWORK\" (BPRD Circular Letter No. 09 of 2026):**\\n        *   **KYC/CDD Workflow Update:** Thoroughly review and overhaul existing customer onboarding, identity verification, and CDD workflows and systems to align with the new consolidated framework.\\n        *   **Data Collection & Storage:** Update data models and databases to capture any new required customer information or documentation as per the consolidated framework.\\n        *   **Integration Updates:** Potentially modify or enhance API integrations with third-party identity verification and background check providers to meet new SBP standards.\\n        *   **Risk Scoring:** Adjust customer risk assessment models to reflect any changes in the onboarding framework.\\n    *   **For \"DEDUCTION OF ZAKAT AT SOURCE\" (BPRD Circular Letter No. 03 of 2026):**\\n        *   **Accounting Logic:** Implement or modify backend accounting and transaction processing logic to automatically identify eligible saving banks/profit & loss sharing accounts (Asset Code No.101) and deduct Zakat at source.\\n        *   **Calculation & Remittance:** Ensure accurate Zakat calculation based on SBP guidelines, implement timely mechanisms for depositing deducted amounts with the designated authorities, and generate necessary audit trails.\\n        *   **Reporting:** Develop new or update existing reporting functionalities to produce SBP-mandated Zakat deduction statements and compliance reports.\t\n# 🚨 SBP Regulation Update: New Directives on Customer Onboarding, Teen Accounts & Zakat\\n**Criticality Level:** CRITICAL\\n\\n### 📝 TL;DR Executive Summary\\nThe State Bank of Pakistan (SBP) has issued several new circulars for 2026 impacting critical FinTech operations. Key directives include a \"Consolidated Customer Onboarding Framework\" likely requiring updates to AML/KYC processes, and a new \"Teenager Account / Wallet\" policy, which will necessitate specific technical adjustments for minor accounts. Additionally, updated regulations for Zakat deduction at source for certain savings/profit-sharing accounts will affect transaction processing and reporting.\\n\\n### 💻 Product & Engineering Impact\\n*   **Affected Product Line:** Digital Wallets, Customer Onboarding, Compliance Services, Savings/Investment Products, Core Banking System\\n*   **Technical Action Required:**\\n    *   **For \"CONSOLIDATED CUSTOMER ONBOARDING FRAMEWORK\" (BPRD Circular Letter No. 09 of 2026):**\\n        *   **AML/KYC System:** Re-engineer or update existing Know Your Customer (KYC) and Anti-Money Laundering (AML) workflows to align with the new consolidated framework. This may involve new identity verification methods, data collection requirements, and enhanced due diligence checks.\\n        *   **Onboarding Flows:** Modify customer onboarding user interfaces and backend processes to incorporate any new steps or data points mandated by the framework.\\n        *   **Database/Record Keeping:** Ensure customer data storage and audit trails comply with new record-keeping requirements for onboarding.\\n        *   **API Integrations:** Review and potentially update integrations with third-party identity verification services, if the framework introduces new data sources or validation standards.\\n    *   **For \"TEENAGER ACCOUNT / WALLET\" (BPRD Circular No. 01 of 2026):**\\n        *   **Account Management:** Implement new account types or flags to designate \"Teenager Accounts/Wallets\" with specific restrictions.\\n        *   **Age Verification:** Enhance age verification mechanisms during onboarding, potentially requiring parental/guardian consent workflows and linking parent/guardian accounts.\\n        *   **Transaction Limits:** Configure granular daily, weekly, and monthly transaction limits (e.g., spending, withdrawals, transfers) specific to teenager accounts/wallets.\\n        *   **Feature Controls:** Develop or adjust features like merchant category restrictions, P2P transfer limitations, or international transaction controls for minor users.\\n        *   **Consent Management:** Implement robust digital consent mechanisms for parental/guardian approval for account opening and potentially for certain transactions or features.\\n    *   **For \"DEDUCTION OF ZAKAT AT SOURCE...\" (BPRD Circular Letter No. 03 of 2026):**\\n        *   **Transaction Processing Logic:** Implement or modify existing logic in the core banking/ledger system to automatically deduct Zakat at source for eligible \"saving banks / profit & loss sharing and similar bank accounts (ASSET CODE NO.101)\".\\n        *   **Reporting:** Develop new or update existing regulatory reporting modules to accurately reflect Zakat deductions and ensure timely deposit to the designated authority.\\n        *   **Account Statements:** Update customer statement generation to clearly display Zakat deductions.\\n        *   **Configuration:** Configure the system to handle specific asset codes (e.g., `ASSET CODE NO.101`) for Zakat eligibility.\\n    *   **Overall Compliance:** Conduct a comprehensive review of all affected product lines to ensure alignment with all new circulars, including legal and operational aspects.\t\n# 🚨 SBP Regulation Update: Consolidated Customer Onboarding Framework\\n\\n**Criticality Level:** CRITICAL\\n\\n### 📝 TL;DR Executive Summary\\nThe State Bank of Pakistan has issued a new circular on a \"Consolidated Customer Onboarding Framework.\" This directive is anticipated to introduce a unified and potentially more stringent set of rules for customer registration, Know Your Customer (KYC), and Anti-Money Laundering (AML) processes across all financial services. We must promptly review the detailed circular to understand and implement the necessary updates to ensure platform-wide compliance.\\n\\n### 💻 Product & Engineering Impact\\n*   **Affected Product Line:** All product lines requiring customer registration and identity verification, including Digital Wallets, EMI Services, Remittance, Loan Products, and our core Compliance Service.\\n*   **Technical Action Required:**\\n    *   **Onboarding Flow Redesign:** Significant overhaul of existing customer onboarding journeys across web and mobile applications to align with new data collection, verification steps, and consent mechanisms.\\n    *   **Data Model & Database Updates:** Modifications to database schemas to store potentially new or revised customer identification data points, KYC document details, and verification statuses.\\n    *   **API & Integration Updates:** Adjustment of internal and external APIs responsible for customer registration, identity verification (e.g., biometric, NADRA integration), sanctions screening, and PEP checks. This may include stricter security requirements for data transmission.\\n    *   **AML/CFT System Logic:** Updates to the business logic and rules within our AML/CFT systems to reflect the new framework's requirements for risk assessment, customer due diligence (CDD), and enhanced due diligence (EDD) triggers.\\n    *   **Audit & Reporting Enhancements:** Implementation of comprehensive audit trails for all onboarding steps and decisions, along with new reporting functionalities to demonstrate compliance with the consolidated framework.\\n    *   **Policy & Procedure Implementation:** Engineers will need to translate updated internal compliance policies into system configurations and automated processes.\t\n# 🚨 SBP Regulation Update: Consolidated Customer Onboarding Framework\\n**Criticality Level:** CRITICAL\\n\\n### 📝 TL;DR Executive Summary\\nThe State Bank of Pakistan has issued a new circular (BPRD Circular Letter No. 09 of 2026) introducing a Consolidated Customer Onboarding Framework. This mandates a comprehensive review and likely significant updates to our platform's Know Your Customer (KYC) and Anti-Money Laundering (AML) processes, ensuring all customer registration and identity verification procedures align with the revised regulatory standards.\\n\\n### 💻 Product & Engineering Impact\\n*   **Affected Product Line:** Digital Wallets, EMI Services, Account Management, Compliance Service, Financial Inclusion products.\\n*   **Technical Action Required:**\\n    *   **AML/KYC System Updates:** Engineers must immediately review and update existing KYC workflows, including identity verification methods (e.g., eKYC, biometric checks, document verification), and customer data capture fields, to comply with the new consolidated framework requirements. This may involve integrating with new data sources or verification partners.\\n    *   **API Modifications:** Potential modifications to customer onboarding APIs will be required to support any new data requirements, validation rules, or enhanced security protocols for data transmission to comply with the consolidated framework.\\n    *   **Database Schema Review:** Assess if the new framework necessitates additions or modifications to our customer profile data storage to accommodate new mandatory information.\\n    *   **Compliance & Reporting:** Updates to internal compliance checks, audit trails, and reporting mechanisms are critical to reflect the revised onboarding procedures and ensure full auditability for SBP.\\n    *   **User Interface/User Experience (UI/UX) Adjustments:** Front-end changes may be required in the onboarding journey to collect additional information, guide users through new verification steps, or enhance transparency regarding data collection.\t\n# 🚨 SBP Regulation Update: Consolidated Customer Onboarding Framework & New Teenager Account/Wallet Directives\\n**Criticality Level:** CRITICAL\\n\\n### 📝 TL;DR Executive Summary\\nThe State Bank of Pakistan (SBP) has released a \"Consolidated Customer Onboarding Framework\" requiring a comprehensive review and potential overhaul of our existing KYC and customer acquisition processes. Concurrently, a new circular provides guidelines for \"Teenager Accounts/Wallets,\" necessitating product development and specialized onboarding procedures for minor-specific financial services. These updates mandate significant technical and product adjustments to ensure compliance and expand our offerings.\\n\\n### 💻 Product & Engineering Impact\\n*   **Affected Product Line:** Digital Wallets, Compliance Service, User Onboarding, Savings/Investment Products (if applicable to Zakat deduction).\\n*   **Technical Action Required:**\\n    *   **Consolidated Customer Onboarding Framework (BPRD Circular Letter No. 09 of 2026):**\\n        *   **AML/KYC Workflow Overhaul:** Review, design, and implement changes to existing customer onboarding flows, identity verification processes, and data collection fields to comply with the new consolidated framework. This likely includes updates to biometric verification integrations, national ID (NADRA) checks, and enhanced due diligence (EDD) triggers.\\n        *   **API & Backend Modifications:** Update relevant API endpoints, microservices, and database schemas that handle customer registration and identity verification to accommodate new data requirements and validation rules.\\n        *   **Compliance Reporting:** Enhance or develop new reporting modules to capture and submit data as per the updated SBP compliance standards for customer onboarding.\\n    *   **Teenager Account / Wallet (BPRD Circular No. 01 of 2026):**\\n        *   **Product Feature Development:** Implement new features within our digital wallet or relevant product lines to support account creation and management for teenagers. This includes handling parental/guardian consent, linking guardian accounts, and age-based access controls.\\n        *   **Minor-Specific KYC Flows:** Design and integrate specific KYC pathways for minor users, ensuring compliance with parental/guardian verification requirements and relevant legal frameworks.\\n        *   **Transaction Limits & Controls:** Implement dynamic transaction limits, spending controls, and potentially specific merchant category restrictions tailored for teenager accounts, as per SBP guidelines.\\n    *   **Deduction of Zakat at Source (BPRD Circular Letter No. 03 of 2026) - *Conditional***:\\n        *   **Zakat Deduction Logic:** If our platform offers savings, profit & loss sharing, or similar bank accounts, implement automated Zakat deduction logic within the core banking or account management system.\\n        *   **Scheduled Processing:** Ensure systems are capable of accurately calculating and deducting Zakat at source on the specified dates.\\n        *   **Reporting & Reconciliation:** Update accounting and reporting systems to track Zakat deductions and facilitate timely deposit to designated authorities, along with providing customer statements reflecting these deductions.\t\n# 🚨 SBP Regulation Update: Consolidated Customer Onboarding Framework\\n**Criticality Level:** CRITICAL\\n\\n### 📝 TL;DR Executive Summary\\nThe State Bank of Pakistan has issued a new \"Consolidated Customer Onboarding Framework\" circular. This regulatory update is highly likely to standardize and update existing requirements for Know Your Customer (KYC) and Anti-Money Laundering (AML) processes, mandating a thorough review and potential re-engineering of our customer acquisition and compliance workflows to ensure full adherence.\\n\\n### 💻 Product & Engineering Impact\\n*   **Affected Product Line:** Compliance Service, User Onboarding, Digital Wallets, Payment Processing, and any product line involving customer account creation or identity verification.\\n*   **Technical Action Required:**\\n    *   **Detailed Circular Analysis:** Immediately obtain and meticulously analyze the full text of BPRD Circular Letter No. 09 of 2026 to understand the specific changes, new requirements, and implementation timelines.\\n    *   **KYC/AML Workflow Re-evaluation:** Assess existing customer onboarding flows against the new consolidated framework. This will likely involve changes to identity verification procedures, documentation requirements, and customer due diligence (CDD) processes.\\n    *   **System Integration Updates:** Modify or integrate with new third-party identity verification, fraud detection, and screening service providers if the framework mandates specific technologies or data sources.\\n    *   **Database & API Modifications:** Update relevant database schemas and API endpoints to capture any new customer information or verification statuses required by the consolidated framework.\\n    *   **Frontend User Experience (UX) Adjustments:** Redesign or update user-facing onboarding forms, data input fields, and instructional text to guide customers through potentially new or revised verification steps.\\n    *   **Compliance Reporting & Audit Trails:** Ensure that all changes to the onboarding process are meticulously logged and that our internal and regulatory reporting capabilities can accurately reflect compliance with the new framework.\\n    *   **Policy & Rules Engine Updates:** Adjust internal risk assessment and compliance rules engines to align with the updated onboarding and KYC standards.\t\n# 🚨 SBP Regulation Update: Consolidated Customer Onboarding Framework\\n**Criticality Level:** CRITICAL\\n\\n### 📝 TL;DR Executive Summary\\nThe State Bank of Pakistan (SBP) has released a new \"Consolidated Customer Onboarding Framework\" and a circular regarding \"Teenager Accounts/Wallets\". These directives necessitate immediate review and potentially significant technical adjustments to our platform's customer acquisition processes (KYC/AML) and our digital wallet offerings, especially for younger demographics, to ensure ongoing regulatory compliance.\\n\\n### 💻 Product & Engineering Impact\\n*   **Affected Product Line:** Compliance Service, Digital Wallets, User Onboarding, Identity Verification, Core Banking System.\\n*   **Technical Action Required:**\\n    *   **Consolidated Customer Onboarding Framework (BPRD Circular Letter No. 09 of 2026):**\\n        *   **KYC/AML Workflow Revisions:** Engineers must update our customer onboarding systems to align with the new framework. This will likely involve changes to data collection fields, acceptable documentation types, and the entire identity verification process.\\n        *   **Backend Validation Logic:** Modify backend systems to enforce new validation rules for customer data and integrate with any SBP-mandated national identity databases or third-party verification services.\\n        *   **Data Storage & Audit Trails:** Ensure that all new customer data and verification steps are stored securely and comply with updated record-keeping and audit trail requirements.\\n        *   **API & UI/UX Updates:** Revise internal and external APIs related to customer registration and update user-facing interfaces to guide users through the new onboarding flow.\\n    *   **Teenager Account / Wallet (BPRD Circular No. 01 of 2026):**\\n        *   **Age Verification & Segmentation:** Implement robust age verification mechanisms during onboarding for new users and potentially for existing users to identify and segment teenager accounts.\\n        *   **Feature Restrictions & Parental Controls:** Introduce configurable controls to restrict certain functionalities (e.g., transaction types, limits, merchant categories) for teenager wallets. This may require developing mechanisms for parental/guardian consent or oversight.\\n        *   **Transaction and Balance Limits:** Configure and enforce new, specific daily, weekly, or monthly transaction and balance limits tailored for teenager accounts/wallets.\\n        *   **Data Privacy for Minors:** Review and update data handling policies and technical implementations to ensure compliance with specific privacy regulations for minors.\t\n# 🚨 SBP Regulation Update: Consolidated Customer Onboarding Framework\\n**Criticality Level:** CRITICAL\\n\\n### 📝 TL;DR Executive Summary\\nThe State Bank of Pakistan has issued BPRD Circular Letter No. 09 of 2026, establishing a \"Consolidated Customer Onboarding Framework,\" and BPRD Circular No. 01 of 2026, introducing \"Teenager Accounts/Wallets.\" These directives necessitate immediate review and potential overhaul of our customer acquisition processes, AML/KYC compliance, and may require new product development and system adjustments to cater to minor users and updated Zakat deduction rules.\\n\\n### 💻 Product & Engineering Impact\\n*   **Affected Product Line:** Digital Wallets, Core Banking/Onboarding Service, Compliance Service, Payment Processing, potentially Savings/Investment Products.\\n*   **Technical Action Required:**\\n    1.  **AML/KYC Systems Overhaul:** The \"Consolidated Customer Onboarding Framework\" (BPRD Circular Letter No. 09 of 2026) requires a comprehensive review and likely redesign of our existing customer onboarding flows. This involves:\\n        *   Updating identity verification procedures and integration points (e.g., NADRA, biometric verification).\\n        *   Adjusting data collection fields to meet new regulatory requirements for customer due diligence.\\n        *   Enhancing real-time screening and AML checks within the onboarding pipeline.\\n        *   Updating backend systems to process and store new KYC information in compliance with the framework.\\n    2.  **Teenager Account/Wallet Development:** For the \"Teenager Account / Wallet\" (BPRD Circular No. 01 of 2026), if we plan to offer or currently serve minors, dedicated development is required:\\n        *   Implement new user profiles and account types specifically for teenagers.\\n        *   Develop parental/guardian consent and authorization mechanisms, likely including multi-factor authentication and explicit approval flows.\\n        *   Configure age-appropriate transaction limits and feature restrictions as per SBP guidelines.\\n        *   Integrate specific KYC procedures for minors and their legal guardians.\\n    3.  **Zakat Deduction Logic Update (Conditional):** If our platform offers saving, profit & loss sharing, or similar bank accounts subject to Zakat deduction (as per BPRD Circular Letter No. 03 of 2026), the following is required:\\n        *   Implement or update automated Zakat calculation and deduction logic at the source.\\n        *   Ensure systems are in place for the immediate deposit of deducted Zakat amounts.\\n        *   Update ledger and reporting systems for accurate Zakat accounting and compliance.\\n    4.  **Compliance Reporting:** Review and update all internal and external compliance reporting mechanisms to reflect changes from the new onboarding framework and any new account types or financial deductions.\\n    5.  **API/Integration Review:** Assess existing third-party integrations (e.g., identity verification services, payment gateways) for compatibility with new compliance requirements and potential need for new integrations.\t\n# 🚨 SBP Regulation Update: Teenager Account / Wallet (BPRD Circular No. 01 of 2026)\\n\\n**Criticality Level:** CRITICAL\\n\\n### 📝 TL;DR Executive Summary\\nThe State Bank of Pakistan has issued BPRD Circular No. 01 of 2026, titled \"TEENAGER ACCOUNT / WALLET,\" dated April 01, 2026, under the \"Financial Inclusion\" category. While the full circular text is not provided in the extracted data, its title strongly indicates a new regulatory framework for offering digital financial accounts or wallets specifically to the teenage demographic. This will necessitate significant updates to product offerings, onboarding processes, and compliance systems for FinTech platforms operating in Pakistan.\\n\\n### 💻 Product & Engineering Impact\\n*   **Affected Product Line:** Digital Wallets, Mobile Banking Applications, User Onboarding & KYC Systems, Compliance Services, Core Account Management.\\n*   **Technical Action Required:**\\n    1.  **New Product Development/Modification:** Implement a new digital account/wallet product type specifically tailored for teenagers. This includes designing new user interfaces, backend services, and database schemas to support the specific features and restrictions of these accounts.\\n    2.  **Enhanced KYC/Onboarding Workflow:** Develop or significantly modify the existing customer onboarding framework to accommodate legal requirements for minors. This will likely involve:\\n        *   Requiring explicit parental/guardian consent during account opening.\\n        *   Implementing verification procedures for the parent/guardian's identity and their relationship to the teenager.\\n        *   Potentially integrating new document submission (e.g., guardian's CNIC, birth certificate) and digital signature processes.\\n    3.  **Implement Transaction and Balance Limits:** Configure and enforce new, specific limits on daily, monthly, and annual transaction volumes, values (e.g., spending, transfers, withdrawals), and maximum account balances for teenager accounts. These limits will need to be dynamically configurable and auditable.\\n    4.  **Parental/Guardian Control Features (Potential):** Depending on the circular's specifics, develop features that allow parents/guardians to monitor account activity, set spending limits, or approve specific transactions for their teenager's wallet/account. This would require robust linked-account functionality and permission management.\\n    5.  **Compliance & Reporting:** Update regulatory compliance modules to track and report on teenager accounts separately, ensuring adherence to any new reporting requirements related to financial inclusion for this demographic.\\n    6.  **Legal & Policy Updates:** Review and update terms & conditions, privacy policies, and consent forms within the application and website to reflect the new regulatory framework for minors.\\n    7.  **Security Considerations:** Evaluate and enhance security protocols specific to accounts held by minors, considering potential vulnerabilities and ensuring robust protection of their data and funds.\t\n# 🚨 SBP Regulation Update: Key Directives on Customer Onboarding, Teenager Accounts, and Zakat Deductions\\n**Criticality Level:** CRITICAL\\n\\n### 📝 TL;DR Executive Summary\\nThe State Bank of Pakistan has issued new circulars significantly impacting FinTech operations. The \"Consolidated Customer Onboarding Framework\" requires immediate review and potential overhaul of our AML/KYC processes. Additionally, the \"Teenager Account / Wallet\" circular introduces specific regulations for accounts catering to minors, demanding product and technical adjustments if we engage with this demographic. Updates to Zakat deduction at source also necessitate revisions to our transaction processing for relevant account types.\\n\\n### 💻 Product & Engineering Impact\\n*   **Affected Product Line:** Digital Wallets, User Onboarding & KYC, Compliance Service, Transaction Processing, Core Banking Systems (if applicable).\\n*   **Technical Action Required:**\\n    *   **AML/KYC & Onboarding:** Conduct an in-depth review of the \"Consolidated Customer Onboarding Framework\" (BPRD Circular Letter No. 09 of 2026). Update all customer onboarding flows, backend identity verification logic, and data storage to comply with the new framework. This will likely involve changes to data capture fields, documentation requirements, digital verification processes, and potentially integration with updated regulatory databases or APIs.\\n    *   **Teenager Accounts/Wallets:** Analyze \"Teenager Account / Wallet\" (BPRD Circular No. 01 of 2026). If the platform offers or plans to offer services to minors, develop and implement new user onboarding workflows, parental/guardian consent mechanisms, age-appropriate feature sets, and specific transaction/balance limits. This requires updates to database schemas, API endpoints, and front-end application logic.\\n    *   **Zakat Deductions:** Review \"Deduction of Zakat at Source\" (BPRD Circular Letter No. 03 of 2026). Adjust core banking or ledger systems to correctly calculate, deduct, and remit Zakat at source for saving, profit & loss sharing, and similar bank accounts immediately after the deduction date. Ensure accurate display of balances and transaction histories reflecting these deductions.\\n    *   **Compliance Infrastructure:** Update internal compliance tools and reporting mechanisms to reflect the new regulatory requirements and enable accurate audit trails.\\n    *   **Documentation & Training:** Update internal technical documentation and provide training to relevant engineering and product teams on the new compliance requirements.",
+        "labels": [],
+        "assignees": []
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        2496,
+        224
+      ],
+      "id": "27a0e73f-9408-481a-a375-43c103166b9f",
+      "name": "Create an issue",
+      "webhookId": "d22a74d8-f867-4f93-b61f-4a3fa3d25dca",
+      "credentials": {
+        "githubApi": {
+          "id": "VaObwobe0QQu7om5",
+          "name": "GitHub account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [],
+        [
+          {
+            "node": "HTML1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Filter1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter1": {
+      "main": [
+        [
+          {
+            "node": "Create an issue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "1c3ec890-4c96-4612-9a22-f73fd4a4a416",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "37772cb7eb8aa8b8aaa6606cf3a7d9b168c1b594ed608c69c19dc28868a66295"
+  },
+  "nodeGroups": [],
+  "id": "ZsTi09iIta49gcmk",
+  "tags": []
+}
